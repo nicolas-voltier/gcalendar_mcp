@@ -1,0 +1,7 @@
+# Requires Python 3.10 or higher
+mcp[cli]>=1.6.0
+mcp-proxy>=0.1.0
+google-auth>=2.39.0
+google-auth-oauthlib>=1.2.1
+google-api-python-client>=2.167.0
+python-dateutil>=2.9.0 
