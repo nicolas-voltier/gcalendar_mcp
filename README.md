@@ -58,13 +58,67 @@ pip install -r requirements.txt
 
 ### 5. Set up Google Calendar API credentials
 
-Before running the server, you need to set up Google OAuth credentials:
+Before running the server, you need to create OAuth credentials from Google Cloud Console. Follow these detailed steps:
+
+#### Step 5.1: Create or Select a Google Cloud Project
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google Calendar API
-4. Create OAuth credentials (Desktop client OAuth ID)
-5. Download the credentials JSON file
+2. Sign in with your Google account
+3. Click on the project dropdown at the top of the page (next to "Google Cloud")
+4. Either:
+   - **Create a new project**: Click "New Project", enter a project name (e.g., "Calendar MCP Server"), and click "Create"
+   - **Select an existing project**: Click on an existing project from the list
+
+#### Step 5.2: Enable Google Calendar API
+
+1. In the Google Cloud Console, make sure your project is selected
+2. Go to **APIs & Services** > **Library** (or use the search bar)
+3. Search for "Google Calendar API"
+4. Click on "Google Calendar API" from the results
+5. Click the **Enable** button
+6. Wait for the API to be enabled (this may take a few seconds)
+
+#### Step 5.3: Configure OAuth Consent Screen
+
+1. Go to **APIs & Services** > **OAuth consent screen**
+2. Select **External** (unless you have a Google Workspace account, then you can use Internal)
+3. Click **Create**
+4. Fill in the required information:
+   - **App name**: Enter a name (e.g., "Calendar MCP Server")
+   - **User support email**: Select your email address
+   - **Developer contact information**: Enter your email address
+5. Click **Save and Continue**
+6. On the **Scopes** page, click **Add or Remove Scopes**
+7. Search for and select: `https://www.googleapis.com/auth/calendar`
+8. Click **Update**, then **Save and Continue**
+9. On the **Test users** page (if using External):
+   - Click **Add Users**
+   - Add your Google account email address
+   - Click **Add**
+   - Click **Save and Continue**
+10. Review the summary and click **Back to Dashboard**
+
+#### Step 5.4: Create OAuth Credentials
+
+1. Go to **APIs & Services** > **Credentials**
+2. Click **+ Create Credentials** at the top of the page
+3. Select **OAuth client ID**
+4. If prompted, select **Desktop app** as the application type
+5. Enter a name for your OAuth client (e.g., "Calendar MCP Desktop Client")
+6. Click **Create**
+7. A popup will appear with your **Client ID** and **Client Secret**
+8. Click **Download JSON** (this downloads the credentials file)
+9. **Important**: Save this file as `credentials.json` in your project directory (same folder as `calendar_mcp_server.py`)
+
+#### Step 5.5: Verify Credentials File
+
+1. Make sure `credentials.json` is in your project root directory
+2. The file should contain JSON with either:
+   - An `"installed"` key (for Desktop app credentials), or
+   - A `"web"` key (for Web app credentials)
+3. The file should include `client_id` and `client_secret` fields
+
+**Note**: If you downloaded the file with a different name (like `client_secret_*.json`), rename it to `credentials.json` and place it in your project directory.
 
 ### 6. Run quick authentication setup
 
@@ -90,7 +144,7 @@ Once your virtual environment is set up and activated, you can run the MCP serve
 ```bash
 # Make sure your virtual environment is activated
 # Then run:
-mcp-proxy run calendar_mcp_server.py
+mcp-proxy python calendar_mcp_server.py
 ```
 
 The server will start and listen for MCP client connections. You can connect to it using any MCP-compatible client.
@@ -101,7 +155,7 @@ By default, `mcp-proxy` will use a random port. To specify a custom port, use th
 
 ```bash
 # Run on a specific port (e.g., 8080)
-mcp-proxy --port 8080 run calendar_mcp_server.py
+mcp-proxy --port 8080 python calendar_mcp_server.py
 ```
 
 You can also configure the host address using the `--host` option (default is `127.0.0.1`):
