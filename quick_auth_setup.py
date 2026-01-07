@@ -1,90 +1,83 @@
 """
 Quick Google Calendar OAuth setup script
 Reads from credentials.json and generates token.json
+Uses the same OAuth flow as calendar_mcp_server.py
 """
 import json
-import requests
-import webbrowser
-import urllib.parse
 from pathlib import Path
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+# OAuth scopes
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 def quick_google_auth():
     # Paths - use current working directory
     creds_path = Path.cwd() / 'credentials.json'
     token_path = Path.cwd() / 'token.json'
     
-    # Load credentials
+    print("Google Calendar OAuth Setup")
+    print("=" * 50)
+    
+    # Check for credentials file
     if not creds_path.exists():
-        print(f"❌ Credentials file not found: {creds_path}")
-        print("Download credentials.json from Google Cloud Console first!")
-        return
+        print(f"\n❌ Credentials file not found: {creds_path}")
+        print("\nPlease download your OAuth credentials from Google Cloud Console:")
+        print("1. Go to https://console.cloud.google.com/")
+        print("2. Create/select a project")
+        print("3. Enable Google Calendar API")
+        print("4. Create OAuth credentials (Desktop client OAuth ID)")
+        print(f"5. Download and save as '{creds_path.name}' in this directory")
+        return False
     
-    with open(creds_path, 'r') as f:
-        creds = json.load(f)
+    print(f"\n✅ Found credentials file: {creds_path}")
     
-    # Extract client info (works for both 'installed' and 'web' app types)
-    if 'installed' in creds:
-        client_info = creds['installed']
-    elif 'web' in creds:
-        client_info = creds['web']
-    else:
-        print("❌ Invalid credentials.json format")
-        return
+    # Check if token already exists
+    if token_path.exists():
+        print(f"\n⚠️  Existing token file found: {token_path}")
+        response = input("Delete existing token to force re-authentication? (y/n): ").strip().lower()
+        if response == 'y':
+            token_path.unlink()
+            print(f"✅ Deleted {token_path}")
+        else:
+            print("Keeping existing token file.")
+            return True
     
-    client_id = client_info['client_id']
-    client_secret = client_info['client_secret']
+    print("\n🔗 Starting OAuth flow...")
+    print("A browser window will open for Google authentication.")
+    print("Please authorize the application to access your Google Calendar.\n")
     
-    # Build auth URL
-    params = {
-        'client_id': client_id,
-        'redirect_uri': 'http://localhost:8080',
-        'scope': 'https://www.googleapis.com/auth/calendar',
-        'response_type': 'code',
-        'access_type': 'offline',
-        'prompt': 'consent'
-    }
-    
-    auth_url = f"https://accounts.google.com/o/oauth2/auth?{urllib.parse.urlencode(params)}"
-    
-    print("🔗 Opening Google authorization page...")
-    webbrowser.open(auth_url)
-    print("\n📋 After authorizing, copy the 'code' parameter from the URL")
-    print("The URL will look like: http://localhost:8080/?code=4/0AanwX...")
-    print("Copy everything after 'code=' (before any '&' if present)")
-    
-    # Get code from user
-    code = input("Paste authorization code: ").strip()
-    
-    # Exchange for tokens
-    token_data = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'code': code,
-        'grant_type': 'authorization_code',
-        'redirect_uri': 'http://localhost:8080'
-    }
-    
-    print("🔄 Getting tokens...")
-    response = requests.post('https://oauth2.googleapis.com/token', data=token_data)
-    
-    if response.status_code == 200:
-        tokens = response.json()
+    try:
+        # Use the same OAuth flow as calendar_mcp_server.py
+        flow = InstalledAppFlow.from_client_secrets_file(
+            str(creds_path), SCOPES)
+        creds = flow.run_local_server(port=0)
         
-        # Add client credentials to the token file (MCP server expects them)
-        tokens['client_id'] = client_id
-        tokens['client_secret'] = client_secret
+        print("\n✅ OAuth flow completed successfully!")
         
-        # Save tokens with credentials
-        token_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(token_path, 'w') as f:
-            json.dump(tokens, f, indent=2)
+        # Save credentials in the format expected by calendar_mcp_server.py
+        token_content = {
+            'token': creds.token,
+            'refresh_token': creds.refresh_token,
+            'token_uri': creds.token_uri,
+            'client_id': creds.client_id,
+            'client_secret': creds.client_secret,
+            'scopes': creds.scopes
+        }
         
-        print(f"✅ Success! Token saved to: {token_path}")
-        print("🚀 Your MCP server should now work!")
+        token_path.write_text(json.dumps(token_content, indent=2))
+        print(f"✅ Token saved to: {token_path}")
+        print("\n🚀 Your MCP server should now work!")
+        print("=" * 50)
+        return True
         
-    else:
-        print(f"❌ Error: {response.status_code}")
-        print(response.text)
+    except Exception as e:
+        print(f"\n❌ Error during OAuth flow: {e}")
+        print("\nTroubleshooting:")
+        print("1. Make sure your OAuth client is created as 'Desktop app' (not 'Web application')")
+        print("2. Check that Google Calendar API is enabled in your project")
+        print("3. Verify your credentials.json file is correct")
+        print("=" * 50)
+        return False
 
 if __name__ == "__main__":
     quick_google_auth()

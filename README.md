@@ -100,23 +100,44 @@ Before running the server, you need to create OAuth credentials from Google Clou
 
 #### Step 5.4: Create OAuth Credentials
 
+**⚠️ IMPORTANT: You MUST create a "Desktop app" OAuth client. Web application clients are NOT supported and will cause authentication errors.**
+
 1. Go to **APIs & Services** > **Credentials**
 2. Click **+ Create Credentials** at the top of the page
 3. Select **OAuth client ID**
-4. If prompted, select **Desktop app** as the application type
+4. **CRITICAL**: In the "Application type" dropdown, select **Desktop app** (DO NOT select "Web application")
 5. Enter a name for your OAuth client (e.g., "Calendar MCP Desktop Client")
 6. Click **Create**
 7. A popup will appear with your **Client ID** and **Client Secret**
 8. Click **Download JSON** (this downloads the credentials file)
 9. **Important**: Save this file as `credentials.json` in your project directory (same folder as `calendar_mcp_server.py`)
 
+**⚠️ If you accidentally created a "Web application" client:**
+- **DO NOT** try to fix it by adding redirect URIs
+- **DELETE** the Web application client
+- **CREATE** a new OAuth client and make sure to select **Desktop app** this time
+- Download the new credentials file and replace your `credentials.json`
+
 #### Step 5.5: Verify Credentials File
 
 1. Make sure `credentials.json` is in your project root directory
-2. The file should contain JSON with either:
-   - An `"installed"` key (for Desktop app credentials), or
-   - A `"web"` key (for Web app credentials)
-3. The file should include `client_id` and `client_secret` fields
+2. **Verify the file structure**: Open `credentials.json` and check that it contains:
+   - An `"installed"` key (this confirms it's a Desktop app client)
+   - **DO NOT** use a file with a `"web"` key - that's for Web applications and won't work
+3. The file should include `client_id` and `client_secret` fields under the `"installed"` section
+
+**Example of correct `credentials.json` structure:**
+```json
+{
+  "installed": {
+    "client_id": "your-client-id.apps.googleusercontent.com",
+    "project_id": "your-project-id",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "client_secret": "your-client-secret"
+  }
+}
+```
 
 **Note**: If you downloaded the file with a different name (like `client_secret_*.json`), rename it to `credentials.json` and place it in your project directory.
 
@@ -207,9 +228,46 @@ The authentication files are stored in the project directory:
 
 ## Troubleshooting
 
+### Common Issues
+
 - **Python version issues**: This project requires Python 3.10 or higher. If you see errors like `No matching distribution found for mcp[cli]`, check your Python version.
+
 - **Authentication errors**: Ensure your `credentials.json` file is correctly placed in the project directory (same folder as `calendar_mcp_server.py`).
+
+- **`redirect_uri_mismatch` error (Error 400)**: This error occurs when you created a "Web application" OAuth client instead of a "Desktop app" client. **Web application clients are NOT supported.**
+  
+  **Fix (REQUIRED):**
+  
+  1. **Delete the Web application client:**
+     - Go to [Google Cloud Console](https://console.cloud.google.com/)
+     - Navigate to **APIs & Services** > **Credentials**
+     - Find your OAuth 2.0 Client ID (it will say "Web application" in the Type column)
+     - Click on it, then click **DELETE** and confirm
+  
+  2. **Create a new Desktop app client:**
+     - In the same Credentials page, click **+ CREATE CREDENTIALS** > **OAuth client ID**
+     - **CRITICAL**: Select **Desktop app** from the "Application type" dropdown (NOT "Web application")
+     - Enter a name (e.g., "Calendar MCP Desktop")
+     - Click **CREATE**
+     - Click **Download JSON** to download the new credentials file
+  
+  3. **Replace your credentials file:**
+     - Delete your old `credentials.json` file
+     - Rename the downloaded file to `credentials.json`
+     - Place it in your project directory (same folder as `calendar_mcp_server.py`)
+     - Verify it contains an `"installed"` key (not `"web"`)
+  
+  4. **Try authentication again:**
+     - Run `python quick_auth_setup.py` again
+     - The OAuth flow should now work correctly with the Desktop app client
+  
+  **Important**: Do NOT try to fix a Web application client by adding redirect URIs. You MUST use a Desktop app client for this project to work.
+
+- **`invalid_grant` error**: The refresh token is invalid or expired.
+  - Delete `token.json` and run `quick_auth_setup.py` again to re-authenticate
+
 - **MCP installation problems**: Try using `uv` instead of `pip` for a more reliable installation experience.
+
 - **mcp-proxy not found**: Make sure you've installed all dependencies from `requirements.txt` and your virtual environment is activated.
 
 ## Notes
